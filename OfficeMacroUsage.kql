@@ -1,0 +1,29 @@
+let id = 
+    IdentityInfo
+    | where TimeGenerated > ago(91d)
+    | summarize arg_max(TimeGenerated, *) by AccountName
+    | extend LoggedOnUser = AccountName
+    | project LoggedOnUser, AccountUPN, JobTitle, EmployeeId, Country, City
+    | join kind=inner (
+        DeviceInfo
+        | where TimeGenerated > ago(91d)
+        | summarize arg_max(TimeGenerated, *) by DeviceName
+        | extend LoggedOnUser = tostring(LoggedOnUsers[0].UserName)
+    ) on LoggedOnUser
+    | project LoggedOnUser, AccountUPN, JobTitle, Country, DeviceName, EmployeeId;
+DeviceProcessEvents
+| join kind=inner id on DeviceName
+| where TimeGenerated > ago(91d)
+| where InitiatingProcessFileName has_any ("EXCEL.EXE", "winword.exe", "powerpnt.exe")
+// .xlsm - Excel Macro, .xltm - Excel marcro-enabled template, .xls - Excel 5.0/95 workbook, .xla - Excel 97-2003 Add-in
+//.docm - Word Macro-enabled Document, .doc - Word 97-2003 document, .dotm - word Macro-enabled template, .dot - Word 97-2003 Template
+//.pptm - Powerpoint Macro-Enabled Presentation, .ppt - Powerpoint 97-2003, .potm - Powerpoint Macro-Enabled Template, .pps - PowerPoint 97-2003 Show, .ppa - PowerPoint 97-2003 Add-in
+| where InitiatingProcessCommandLine has_any (".xlsm", ".xltm", ".xls", ".xla", ".docm", ".doc", ".dotm", ".dot", ".pptm", ".ppt", ".potm", ".pps", ".ppa", ".ppsm")
+| extend Process = InitiatingProcessFileName
+| extend CommandLine = InitiatingProcessCommandLine
+| where 
+    CommandLine contains "https://" or //search for sharepoint site 
+    CommandLine contains @":\"  //Search for all drive letter C:, D:, O:, G:, M: etc.
+| extend CommandParts = tostring(split(CommandLine, '"')[3])
+| extend LastPartOfCommandParts = tostring(split(CommandParts, '\\')[0])
+| projectTimeGenerated, DeviceName, CommandLine, CommandParts, LastPartOfCommandParts,   LoggedOnUser, AccountUPN,    Process,JobTitle, EmployeeId,SHA1, SHA256;
