@@ -26,4 +26,4 @@ DeviceProcessEvents
     CommandLine contains @":\"  //Search for all drive letter C:, D:, O:, G:, M: etc.
 | extend CommandParts = tostring(split(CommandLine, '"')[3])
 | extend LastPartOfCommandParts = tostring(split(CommandParts, '\\')[0])
-| projectTimeGenerated, DeviceName, CommandLine, CommandParts, LastPartOfCommandParts,   LoggedOnUser, AccountUPN,    Process,JobTitle, EmployeeId,SHA1, SHA256;
+| project TimeGenerated, DeviceName, CommandLine, CommandParts, LastPartOfCommandParts,   LoggedOnUser, AccountUPN,    Process,JobTitle, EmployeeId,SHA1, SHA256;
