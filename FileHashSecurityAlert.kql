@@ -1,0 +1,17 @@
+SecurityAlert
+| where isnotempty(["Entities"])
+| extend Entities = parse_json(Entities)
+| mv-apply Entities on (
+    extend EntitiesWithName = tostring(Entities.Name),
+           Directory = tostring(Entities.Directory),
+           FileHashes = Entities.FileHashes
+)
+| mv-apply FileHashes on (
+    extend FileHash = pack('Algorithm', FileHashes.Algorithm, 'Value', FileHashes.Value)
+)
+| mv-apply FileHash on (
+    extend Algorithm = tostring(FileHash.Algorithm),
+           Value = tostring(FileHash.Value)
+)
+| where EntitiesWithName has_any ('morpho.utilities.zip', '7.90.1038.zip')
+| project TimeGenerated, DisplayName, EntitiesWithName, Directory, FileHash, VirusTotalURL = strcat("https://www.virustotal.com/gui/file/", Value)
